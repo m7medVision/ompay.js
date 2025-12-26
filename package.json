@@ -1,5 +1,5 @@
 {
-  "name": "ompay-sdk",
+  "name": "ompay.js",
   "version": "0.1.0",
   "description": "Unofficial SDK for OMPAY Payment Gateway integration",
   "type": "module",
@@ -41,12 +41,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/m7medvision/ompay-sdk.git"
+    "url": "git+https://github.com/m7medVision/ompay.js.git"
   },
   "bugs": {
-    "url": "https://github.com/m7medvision/ompay-sdk/issues"
+    "url": "https://github.com/m7medVision/ompay.js.git/issues"
   },
-  "homepage": "https://github.com/m7medvision/ompay-sdk#readme",
+  "homepage": "https://github.com/m7medvision/ompay.js#readme",
   "engines": {
     "node": ">=18.0.0"
   },

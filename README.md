@@ -1,4 +1,4 @@
-# OMPAY SDK
+# ompay.js
 
 Unofficial Node.js SDK for OMPAY Payment Gateway integration.
 
@@ -6,22 +6,22 @@ Unofficial Node.js SDK for OMPAY Payment Gateway integration.
 
 ```bash
 # npm
-npm install ompay-sdk
+npm install ompay.js
 
 # yarn
-yarn add ompay-sdk
+yarn add ompay.js
 
 # pnpm
-pnpm add ompay-sdk
+pnpm add ompay.js
 
 # bun
-bun add ompay-sdk
+bun add ompay.js
 ```
 
 ## Quick Start
 
 ```typescript
-import { OMPayClient } from 'ompay-sdk';
+import { OMPayClient } from 'ompay.js';
 
 const client = new OMPayClient({
   clientId: 'your-client-id',
@@ -34,8 +34,8 @@ const order = await client.createCheckout({
   amount: 100.00,
   currency: 'OMR',
   customer: {
-    name: 'John Doe',
-    email: 'john@example.com',
+    name: 'Omar Al-Busaidi',
+    email: 'omar@example.com',
     phone: '+96891234567',
   },
 });
@@ -65,8 +65,8 @@ const order = await client.createCheckout({
   amount: 100.00,
   currency: 'OMR',
   customer: {
-    name: 'John Doe',
-    email: 'john@example.com',
+    name: 'Omar Al-Busaidi',
+    email: 'omar@example.com',
     phone: '+96891234567',
   },
   uiMode: 'checkout', // optional
@@ -107,7 +107,7 @@ client.verifySignatureOrThrow(
 ## Error Handling
 
 ```typescript
-import { OMPayClient, OMPayError } from 'ompay-sdk';
+import { OMPayClient, OMPayError } from 'ompay.js';
 
 try {
   const order = await client.createCheckout({ /* ... */ });
