@@ -1,6 +1,6 @@
 {
   "name": "ompay-sdk",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Unofficial SDK for OMPAY Payment Gateway integration",
   "type": "module",
   "main": "./dist/index.cjs",
