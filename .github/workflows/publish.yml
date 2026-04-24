@@ -1,42 +1,49 @@
-name: Publish to NPM
+name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
+      contents: write
+      issues: write
+      pull-requests: write
       id-token: write
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "lts/*"
+          cache: npm
 
       - name: Install dependencies
-        run: bun install
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
 
       - name: Run type check
-        run: bun run typecheck
+        run: npm run typecheck
 
-      # - name: Run tests
-      #   run: bun run test:run
+      - name: Run tests
+        run: npm run test
 
       - name: Build
-        run: bun run build
+        run: npm run build
 
-      - name: Publish to NPM
-        run: npm publish --access public
+      - name: Verify provenance signatures
+        run: npm audit signatures
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
