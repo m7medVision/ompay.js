@@ -1,6 +1,6 @@
 # ompay.js
 
-Unofficial Node.js SDK for OMPAY Payment Gateway integration.
+Unofficial TypeScript/Node.js SDK for OMPAY Payment Gateway integration.
 
 ## Installation
 
@@ -26,12 +26,11 @@ import { OMPayClient } from 'ompay.js';
 const client = new OMPayClient({
   clientId: 'your-client-id',
   clientSecret: 'your-client-secret',
-  environment: 'sandbox', // or 'production'
+  environment: 'sandbox',
 });
 
-// Create a checkout order
 const order = await client.createCheckout({
-  amount: 100.00,
+  amount: 100.0,
   currency: 'OMR',
   customer: {
     name: 'Omar Al-Busaidi',
@@ -43,42 +42,52 @@ const order = await client.createCheckout({
 console.log('Order ID:', order.orderId);
 ```
 
-## API Reference
-
-### Configuration
+## Configuration
 
 ```typescript
 interface OMPayConfig {
   clientId: string;
   clientSecret: string;
-  environment?: 'sandbox' | 'production'; // default: 'sandbox'
-  timeout?: number; // default: 30000ms
+  environment?: 'sandbox' | 'production';
+  timeout?: number;
+  merchant?: {
+    domain?: string;
+    browserFingerprint?: string;
+    userAgent?: string;
+    ipAddress?: string;
+    acceptLanguage?: string;
+    cardEncryptionKey?: string;
+  };
 }
 ```
 
+Use `merchant` defaults when calling merchant-hosted APIs. You can also pass a per-request `MerchantRequestContext` as the second argument to merchant-hosted methods.
+
+## Bank-Hosted Checkout
+
 ### Create Checkout
 
-Create a new payment order:
+Use either `customer` or `customerFields`. Both map to the gateway `customerFields` payload.
 
 ```typescript
 const order = await client.createCheckout({
-  amount: 100.00,
+  amount: 100.0,
   currency: 'OMR',
-  customer: {
+  customerFields: {
     name: 'Omar Al-Busaidi',
     email: 'omar@example.com',
     phone: '+96891234567',
   },
-  uiMode: 'checkout', // optional
-  redirectType: 'redirect', // or 'post'
-  orderReference: 'ORDER-123', // optional
-  metadata: { customField: 'value' }, // optional
+  uiMode: 'checkout',
+  redirectType: 'redirect',
+  receiptId: 'ORDER-123',
+  description: 'Order description',
+  curn: 'CURN-123',
+  metadata: { customField: 'value' },
 });
 ```
 
 ### Check Payment Status
-
-Verify the status of an order:
 
 ```typescript
 const status = await client.checkStatus('order-id');
@@ -87,22 +96,112 @@ console.log('Status:', status.status);
 console.log('Payment ID:', status.paymentId);
 ```
 
-### Verify Payment Signature
-
-Verify webhook/callback signatures:
+### Build Hosted Checkout URL
 
 ```typescript
-const isValid = client.verifySignature(
-  { orderId: 'order-id', paymentId: 'payment-id' },
-  'signature-from-webhook'
-);
-
-// Or throw on invalid signature
-client.verifySignatureOrThrow(
-  { orderId: 'order-id', paymentId: 'payment-id' },
-  'signature-from-webhook'
+const checkoutUrl = client.buildCheckoutUrl(
+  'order-id',
+  'https://merchant.example.com/return',
 );
 ```
+
+You can also pass an object form:
+
+```typescript
+const checkoutUrl = client.buildCheckoutUrl({
+  orderId: 'order-id',
+  redirectUrl: 'https://merchant.example.com/return',
+  clientId: 'optional-client-id-override',
+});
+```
+
+## Merchant-Hosted Flow
+
+```typescript
+import { OMPayClient } from 'ompay.js';
+
+const client = new OMPayClient({
+  clientId: 'your-client-id',
+  clientSecret: 'your-client-secret',
+  environment: 'sandbox',
+  merchant: {
+    browserFingerprint: 'fingerprint-123',
+    userAgent: 'Mozilla/5.0',
+    domain: 'https://merchant.example.com',
+    acceptLanguage: 'en-US',
+    cardEncryptionKey: '64-char-hex-key-from-merchant-dashboard',
+  },
+});
+
+const order = await client.createOrder({
+  amount: 100.0,
+  currency: 'OMR',
+  description: 'Hosted order',
+  receiptId: 'INV-1',
+  customerFields: {
+    name: 'Jane Doe',
+    email: 'jane@example.com',
+    phone: '91234567',
+  },
+});
+
+const encryptedCardDetails = client.encryptCardDetails({
+  cardNumber: '4111111111111111',
+  cardExpMonth: '02',
+  cardExpYear: '27',
+  cardCVV: '123',
+});
+
+const payment = await client.initiateTransaction({
+  orderId: order.orderId,
+  encryptedCardDetails,
+  cardHolderName: 'Jane Doe',
+  redirectionUrl: 'https://merchant.example.com/return',
+  paymentMode: 'card',
+  secureCard: true,
+});
+
+const paymentStatus = await client.getTransactionStatus(payment.paymentId);
+```
+
+Other merchant-hosted methods:
+
+- `client.refundTransaction({ paymentId, amount }, context?)`
+- `client.listDigitalCards(customerId, context?)`
+- `client.deleteDigitalCard(customerId, digitalCardId, context?)`
+
+Advanced merchant-hosted helpers:
+
+- `client.buildMerchantHeaders(apiPath, context?, payload?)`
+- `client.generateMerchantSignature(apiPath, payload?)`
+
+## Signature Verification
+
+Use `verifyWebhookSignature` for raw webhook bodies and `verifySignature` for the documented `orderId|paymentId` payment signature format.
+
+```typescript
+const rawWebhookBody = JSON.stringify({ paymentId: 'pay-123', status: 'success' });
+const isWebhookValid = client.verifyWebhookSignature(
+  rawWebhookBody,
+  'signature-from-header',
+);
+
+const isPaymentValid = client.verifySignature(
+  { orderId: 'order-id', paymentId: 'payment-id' },
+  'signature-from-callback',
+);
+
+client.verifySignatureOrThrow(
+  { orderId: 'order-id', paymentId: 'payment-id' },
+  'signature-from-callback',
+);
+```
+
+## Additional Helpers
+
+- `client.getClientId()`
+- `client.getEnvironment()`
+- `client.getBaseUrl()`
 
 ## Error Handling
 
@@ -110,7 +209,15 @@ client.verifySignatureOrThrow(
 import { OMPayClient, OMPayError } from 'ompay.js';
 
 try {
-  const order = await client.createCheckout({ /* ... */ });
+  const order = await client.createCheckout({
+    amount: 100.0,
+    currency: 'OMR',
+    customerFields: {
+      name: 'Jane Doe',
+      email: 'jane@example.com',
+      phone: '91234567',
+    },
+  });
 } catch (error) {
   if (error instanceof OMPayError) {
     console.error('Error code:', error.code);
@@ -130,19 +237,28 @@ try {
 | `NETWORK_ERROR` | Network connectivity issue |
 | `TIMEOUT_ERROR` | Request timed out |
 | `SIGNATURE_MISMATCH` | Invalid payment signature |
+| `UNKNOWN_ERROR` | Unexpected SDK or runtime error |
 
 ## Test Cards
 
-Use these cards in the UAT/sandbox environment:
+Use these official cards in the UAT/sandbox environment:
 
-### Local Debit Card
+### VISA Card (Always approved)
+
+- **Card Number:** 4111111111111111
+- **Expiry:** 12/30
+- **CVV:** 123
+
+### Master Card (Always approved)
+
+- **Card Number:** 5186001700008785
+- **Expiry:** 12/30
+- **CVV:** 123
+
+### Visa Card (Always Rejected)
+
 - **Card Number:** 4393570006367857
-- **Expiry:** 03/28
-- **CVV:** 152
-
-### Credit/International Card
-- **Card Number:** 4012001037490006
-- **Expiry:** 12/25
+- **Expiry:** 12/30
 - **CVV:** 123
 
 ## Environment URLs
@@ -156,16 +272,19 @@ Use these cards in the UAT/sandbox environment:
 
 ```bash
 # Install dependencies
-bun install
+npm install
 
 # Run tests
-bun run test
+npm test
 
 # Build
-bun run build
+npm run build
 
 # Type check
-bun run typecheck
+npm run typecheck
+
+# Lint
+npm run lint
 ```
 
 ## Contributing
