@@ -1,4 +1,4 @@
-export { OMPayClient } from "./client.js";
+export { OMPayClient } from "./client/index.js";
 export {
   OMPayError,
   type OMPayErrorCode,
@@ -39,4 +39,4 @@ export type {
   MerchantDigitalCard,
   MerchantDigitalCardListResponse,
   MerchantDeleteDigitalCardResponse,
-} from "./types.js";
+} from "./types/index.js";
