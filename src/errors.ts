@@ -1,4 +1,4 @@
-import type { AxiosError } from "axios";
+import { HttpError } from "./http.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -71,12 +71,10 @@ export class OMPayError extends Error {
     Object.setPrototypeOf(this, OMPayError.prototype);
   }
 
-  static fromAxiosError(
-    error: AxiosError<Record<string, unknown>>,
-  ): OMPayError {
-    if (error.response) {
-      const statusCode = error.response.status;
-      const responseData = getResponseData(error.response.data);
+  static fromHttpError(error: unknown): OMPayError {
+    if (error instanceof HttpError) {
+      const statusCode = error.status;
+      const responseData = getResponseData(error.data);
       const message = getErrorMessage(responseData);
 
       if (statusCode === 401 || statusCode === 403) {
@@ -108,7 +106,7 @@ export class OMPayError extends Error {
       });
     }
 
-    if (error.code === "ECONNABORTED") {
+    if (error instanceof Error && error.name === "TimeoutError") {
       return new OMPayError({
         code: "TIMEOUT_ERROR",
         message: "Request timed out",
@@ -116,7 +114,7 @@ export class OMPayError extends Error {
       });
     }
 
-    if (error.request) {
+    if (error instanceof Error && error.name === "NetworkError") {
       return new OMPayError({
         code: "NETWORK_ERROR",
         message: "Network error. Please check your internet connection.",
@@ -124,10 +122,17 @@ export class OMPayError extends Error {
       });
     }
 
+    if (error instanceof Error) {
+      return new OMPayError({
+        code: "UNKNOWN_ERROR",
+        message: error.message || "An unknown error occurred",
+        originalError: error,
+      });
+    }
+
     return new OMPayError({
       code: "UNKNOWN_ERROR",
-      message: error.message || "An unknown error occurred",
-      originalError: error,
+      message: "An unknown error occurred",
     });
   }
 

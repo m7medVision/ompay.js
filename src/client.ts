@@ -1,4 +1,3 @@
-import axios, { type AxiosInstance, type AxiosError } from "axios";
 import {
   createCipheriv,
   createHmac,
@@ -6,6 +5,7 @@ import {
   timingSafeEqual,
 } from "crypto";
 import { OMPayError } from "./errors.js";
+import { HttpClient } from "./http.js";
 import type {
   OMPayConfig,
   Environment,
@@ -231,7 +231,7 @@ interface ResolvedMerchantRequestContext {
 }
 
 export class OMPayClient {
-  private readonly httpClient: AxiosInstance;
+  private readonly httpClient: HttpClient;
   private readonly clientId: string;
   private readonly clientSecret: string;
   private readonly environment: Environment;
@@ -247,15 +247,14 @@ export class OMPayClient {
 
     const baseURL = API_URLS[this.environment];
 
-    this.httpClient = axios.create({
-      baseURL,
+    this.httpClient = new HttpClient({
+      baseUrl: baseURL,
       timeout: config.timeout ?? DEFAULT_TIMEOUT,
       headers: {
         "Content-Type": "application/json",
-      },
-      auth: {
-        username: this.clientId,
-        password: this.clientSecret,
+        Authorization: `Basic ${Buffer.from(
+          `${this.clientId}:${this.clientSecret}`,
+        ).toString("base64")}`,
       },
     });
   }
@@ -454,8 +453,8 @@ export class OMPayClient {
         data: body,
       };
     } catch (error) {
-      throw OMPayError.fromAxiosError(
-        error as AxiosError<Record<string, unknown>>,
+      throw OMPayError.fromHttpError(
+        error,
       );
     }
   }
@@ -547,8 +546,8 @@ export class OMPayClient {
         data: body,
       };
     } catch (error) {
-      throw OMPayError.fromAxiosError(
-        error as AxiosError<Record<string, unknown>>,
+      throw OMPayError.fromHttpError(
+        error,
       );
     }
   }
@@ -592,8 +591,8 @@ export class OMPayClient {
         data: body,
       };
     } catch (error) {
-      throw OMPayError.fromAxiosError(
-        error as AxiosError<Record<string, unknown>>,
+      throw OMPayError.fromHttpError(
+        error,
       );
     }
   }
@@ -689,8 +688,8 @@ export class OMPayClient {
         data: body,
       };
     } catch (error) {
-      throw OMPayError.fromAxiosError(
-        error as AxiosError<Record<string, unknown>>,
+      throw OMPayError.fromHttpError(
+        error,
       );
     }
   }
@@ -788,8 +787,8 @@ export class OMPayClient {
         data: body,
       };
     } catch (error) {
-      throw OMPayError.fromAxiosError(
-        error as AxiosError<Record<string, unknown>>,
+      throw OMPayError.fromHttpError(
+        error,
       );
     }
   }
@@ -848,8 +847,8 @@ export class OMPayClient {
         data: body,
       };
     } catch (error) {
-      throw OMPayError.fromAxiosError(
-        error as AxiosError<Record<string, unknown>>,
+      throw OMPayError.fromHttpError(
+        error,
       );
     }
   }
@@ -890,8 +889,8 @@ export class OMPayClient {
         data: body,
       };
     } catch (error) {
-      throw OMPayError.fromAxiosError(
-        error as AxiosError<Record<string, unknown>>,
+      throw OMPayError.fromHttpError(
+        error,
       );
     }
   }
@@ -937,8 +936,8 @@ export class OMPayClient {
         data: body,
       };
     } catch (error) {
-      throw OMPayError.fromAxiosError(
-        error as AxiosError<Record<string, unknown>>,
+      throw OMPayError.fromHttpError(
+        error,
       );
     }
   }
