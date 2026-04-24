@@ -1,5 +1,6 @@
 import { OMPayError } from "../errors.js";
 import { HttpClient } from "../http.js";
+import type { HttpTransport } from "../transport.js";
 import type {
   OMPayConfig,
   Environment,
@@ -49,7 +50,7 @@ import {
 } from "./merchant-cards.js";
 
 export class OMPayClient {
-  private readonly httpClient: HttpClient;
+  private readonly transport: HttpTransport;
   private readonly clientId: string;
   private readonly clientSecret: string;
   private readonly environment: Environment;
@@ -65,7 +66,7 @@ export class OMPayClient {
 
     const baseURL = API_URLS[this.environment];
 
-    this.httpClient = new HttpClient({
+    this.transport = new HttpClient({
       baseUrl: baseURL,
       timeout: config.timeout ?? DEFAULT_TIMEOUT,
       headers: {
@@ -136,46 +137,46 @@ export class OMPayClient {
   async createCheckout(
     request: CreateCheckoutRequest,
   ): Promise<CreateCheckoutResponse> {
-    return createCheckout(this.httpClient, request);
+    return createCheckout(this.transport, request);
   }
 
   async checkStatus(orderId: string): Promise<OrderStatusResponse> {
-    return checkStatus(this.httpClient, orderId);
+    return checkStatus(this.transport, orderId);
   }
 
   async createOrder(
     request: MerchantOrderRequest,
     context?: MerchantRequestContext,
   ): Promise<MerchantOrderResponse> {
-    return createOrder(this.httpClient, this.getCryptoDeps(), request, context);
+    return createOrder(this.transport, this.getCryptoDeps(), request, context);
   }
 
   async initiateTransaction(
     request: MerchantInitiateTransactionRequest,
     context?: MerchantRequestContext,
   ): Promise<MerchantInitiateTransactionResponse> {
-    return initiateTransaction(this.httpClient, this.getCryptoDeps(), request, context);
+    return initiateTransaction(this.transport, this.getCryptoDeps(), request, context);
   }
 
   async getTransactionStatus(
     paymentId: string,
     context?: MerchantRequestContext,
   ): Promise<MerchantTransactionStatusResponse> {
-    return getTransactionStatus(this.httpClient, this.getCryptoDeps(), paymentId, context);
+    return getTransactionStatus(this.transport, this.getCryptoDeps(), paymentId, context);
   }
 
   async refundTransaction(
     request: MerchantRefundRequest,
     context?: MerchantRequestContext,
   ): Promise<MerchantRefundResponse> {
-    return refundTransaction(this.httpClient, this.getCryptoDeps(), request, context);
+    return refundTransaction(this.transport, this.getCryptoDeps(), request, context);
   }
 
   async listDigitalCards(
     customerId: string,
     context?: MerchantRequestContext,
   ): Promise<MerchantDigitalCardListResponse> {
-    return listDigitalCards(this.httpClient, this.getCryptoDeps(), customerId, context);
+    return listDigitalCards(this.transport, this.getCryptoDeps(), customerId, context);
   }
 
   async deleteDigitalCard(
@@ -183,7 +184,7 @@ export class OMPayClient {
     digitalCardId: string,
     context?: MerchantRequestContext,
   ): Promise<MerchantDeleteDigitalCardResponse> {
-    return deleteDigitalCard(this.httpClient, this.getCryptoDeps(), customerId, digitalCardId, context);
+    return deleteDigitalCard(this.transport, this.getCryptoDeps(), customerId, digitalCardId, context);
   }
 
   verifyWebhookSignature(message: string, providedSignature: string): boolean {

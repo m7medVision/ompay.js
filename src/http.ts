@@ -1,17 +1,12 @@
-export interface HttpRequestOptions {
-  method: "GET" | "POST" | "DELETE" | "PUT" | "PATCH";
-  url: string;
-  headers?: Record<string, string>;
-  params?: Record<string, string>;
-  body?: unknown;
-  timeout?: number;
-}
+import type {
+  HttpTransport,
+  TransportRequestOptions,
+  TransportResponse,
+} from "./transport.js";
 
-export interface HttpResponse<T = unknown> {
-  data: T;
-  status: number;
-  headers: globalThis.Headers;
-}
+export type HttpRequestOptions = TransportRequestOptions;
+
+export type HttpResponse<T = unknown> = TransportResponse<T>;
 
 export class HttpError extends Error {
   readonly status: number;
@@ -45,7 +40,7 @@ function buildUrl(
   return url.toString();
 }
 
-export class HttpClient {
+export class HttpClient implements HttpTransport {
   private readonly baseUrl: string;
   private readonly defaultHeaders: Record<string, string>;
   private readonly defaultTimeout: number;
@@ -60,7 +55,9 @@ export class HttpClient {
     this.defaultTimeout = options.timeout ?? 30000;
   }
 
-  async request<T = unknown>(options: HttpRequestOptions): Promise<HttpResponse<T>> {
+  async request<T = unknown>(
+    options: TransportRequestOptions,
+  ): Promise<TransportResponse<T>> {
     const url = buildUrl(this.baseUrl, options.url, options.params);
     const controller = new AbortController();
     const timeout = options.timeout ?? this.defaultTimeout;
@@ -144,23 +141,23 @@ export class HttpClient {
 
   async get<T = unknown>(
     url: string,
-    options?: Omit<HttpRequestOptions, "method" | "url" | "body">,
-  ): Promise<HttpResponse<T>> {
+    options?: Omit<TransportRequestOptions, "method" | "url" | "body">,
+  ): Promise<TransportResponse<T>> {
     return this.request<T>({ method: "GET", url, ...options });
   }
 
   async post<T = unknown>(
     url: string,
     body?: unknown,
-    options?: Omit<HttpRequestOptions, "method" | "url" | "body">,
-  ): Promise<HttpResponse<T>> {
+    options?: Omit<TransportRequestOptions, "method" | "url" | "body">,
+  ): Promise<TransportResponse<T>> {
     return this.request<T>({ method: "POST", url, body, ...options });
   }
 
   async delete<T = unknown>(
     url: string,
-    options?: Omit<HttpRequestOptions, "method" | "url" | "body">,
-  ): Promise<HttpResponse<T>> {
+    options?: Omit<TransportRequestOptions, "method" | "url" | "body">,
+  ): Promise<TransportResponse<T>> {
     return this.request<T>({ method: "DELETE", url, ...options });
   }
 }

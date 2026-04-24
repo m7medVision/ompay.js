@@ -1,5 +1,5 @@
 import { OMPayError } from "../errors.js";
-import { HttpClient } from "../http.js";
+import type { HttpTransport } from "../transport.js";
 import type {
   MerchantRequestContext,
   MerchantOrderRequest,
@@ -70,7 +70,7 @@ export function validateMerchantOrderRequest(request: MerchantOrderRequest): voi
 }
 
 export async function createOrder(
-  httpClient: HttpClient,
+  transport: HttpTransport,
   cryptoDeps: CryptoDeps,
   request: MerchantOrderRequest,
   context?: MerchantRequestContext,
@@ -88,7 +88,7 @@ export async function createOrder(
   };
 
   try {
-    const response = await httpClient.post<ApiRecord>(
+    const response = await transport.post<ApiRecord>(
       getMerchantPath(apiPath),
       payload,
       {
@@ -164,7 +164,7 @@ export function validateMerchantInitiateRequest(
 }
 
 export async function initiateTransaction(
-  httpClient: HttpClient,
+  transport: HttpTransport,
   cryptoDeps: CryptoDeps,
   request: MerchantInitiateTransactionRequest,
   context?: MerchantRequestContext,
@@ -186,7 +186,7 @@ export async function initiateTransaction(
   };
 
   try {
-    const response = await httpClient.post<ApiRecord>(
+    const response = await transport.post<ApiRecord>(
       getMerchantPath(apiPath),
       payload,
       {

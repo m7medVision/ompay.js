@@ -1,5 +1,5 @@
 import { OMPayError } from "../errors.js";
-import { HttpClient } from "../http.js";
+import type { HttpTransport } from "../transport.js";
 import type {
   CreateCheckoutRequest,
   CreateCheckoutResponse,
@@ -73,7 +73,7 @@ export function validateCheckoutRequest(request: CreateCheckoutRequest): void {
 }
 
 export async function createCheckout(
-  httpClient: HttpClient,
+  transport: HttpTransport,
   request: CreateCheckoutRequest,
 ): Promise<CreateCheckoutResponse> {
   validateCheckoutRequest(request);
@@ -106,7 +106,7 @@ export async function createCheckout(
   }
 
   try {
-    const response = await httpClient.post<ApiRecord>(
+    const response = await transport.post<ApiRecord>(
       "/nac/api/v1/pg/orders/create-checkout",
       payload,
     );
@@ -131,7 +131,7 @@ export async function createCheckout(
 }
 
 export async function checkStatus(
-  httpClient: HttpClient,
+  transport: HttpTransport,
   orderId: string,
 ): Promise<OrderStatusResponse> {
   if (!orderId || typeof orderId !== "string") {
@@ -142,7 +142,7 @@ export async function checkStatus(
   }
 
   try {
-    const response = await httpClient.get<ApiRecord>(
+    const response = await transport.get<ApiRecord>(
       "/nac/api/v1/pg/orders/check-status",
       {
         params: { orderId },

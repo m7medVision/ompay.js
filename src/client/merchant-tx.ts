@@ -1,5 +1,5 @@
 import { OMPayError } from "../errors.js";
-import { HttpClient } from "../http.js";
+import type { HttpTransport } from "../transport.js";
 import type {
   MerchantRequestContext,
   MerchantTransactionStatusResponse,
@@ -24,7 +24,7 @@ function getMerchantPath(path: string): string {
 }
 
 export async function getTransactionStatus(
-  httpClient: HttpClient,
+  transport: HttpTransport,
   cryptoDeps: CryptoDeps,
   paymentId: string,
   context?: MerchantRequestContext,
@@ -39,7 +39,7 @@ export async function getTransactionStatus(
   const apiPath = `/transaction/status/${paymentId}`;
 
   try {
-    const response = await httpClient.get<ApiRecord>(
+    const response = await transport.get<ApiRecord>(
       getMerchantPath(apiPath),
       {
         headers: buildMerchantHeaders(cryptoDeps, apiPath, context),
@@ -74,7 +74,7 @@ export async function getTransactionStatus(
 }
 
 export async function refundTransaction(
-  httpClient: HttpClient,
+  transport: HttpTransport,
   cryptoDeps: CryptoDeps,
   request: MerchantRefundRequest,
   context?: MerchantRequestContext,
@@ -100,7 +100,7 @@ export async function refundTransaction(
   };
 
   try {
-    const response = await httpClient.post<ApiRecord>(
+    const response = await transport.post<ApiRecord>(
       getMerchantPath(apiPath),
       payload,
       {

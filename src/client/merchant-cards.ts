@@ -1,5 +1,5 @@
 import { OMPayError } from "../errors.js";
-import { HttpClient } from "../http.js";
+import type { HttpTransport } from "../transport.js";
 import type {
   MerchantRequestContext,
   MerchantDigitalCardListResponse,
@@ -24,7 +24,7 @@ function getMerchantPath(path: string): string {
 }
 
 export async function listDigitalCards(
-  httpClient: HttpClient,
+  transport: HttpTransport,
   cryptoDeps: CryptoDeps,
   customerId: string,
   context?: MerchantRequestContext,
@@ -39,7 +39,7 @@ export async function listDigitalCards(
   const apiPath = `/customer/${customerId}/digitalCards`;
 
   try {
-    const response = await httpClient.get<ApiRecord>(
+    const response = await transport.get<ApiRecord>(
       getMerchantPath(apiPath),
       {
         headers: buildMerchantHeaders(cryptoDeps, apiPath, context),
@@ -66,7 +66,7 @@ export async function listDigitalCards(
 }
 
 export async function deleteDigitalCard(
-  httpClient: HttpClient,
+  transport: HttpTransport,
   cryptoDeps: CryptoDeps,
   customerId: string,
   digitalCardId: string,
@@ -89,7 +89,7 @@ export async function deleteDigitalCard(
   const apiPath = `/customer/${customerId}/digitalCards/${digitalCardId}`;
 
   try {
-    const response = await httpClient.delete<ApiRecord>(
+    const response = await transport.delete<ApiRecord>(
       getMerchantPath(apiPath),
       {
         headers: buildMerchantHeaders(cryptoDeps, apiPath, context),
