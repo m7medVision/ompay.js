@@ -1,0 +1,8 @@
+{
+  "options": {
+    "typeAware": true
+  },
+  "rules": {
+    "no-console": "off"
+  }
+}
