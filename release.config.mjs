@@ -1,6 +1,7 @@
 /** @type {import('semantic-release').GlobalConfig} */
 export default {
   branches: ["main"],
+  repositoryUrl: "https://github.com/m7medVision/ompay.js.git",
   tagFormat: "${version}",
   plugins: [
     [
