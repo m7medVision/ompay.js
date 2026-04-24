@@ -1,5 +1,42 @@
 import type { AxiosError } from "axios";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function getResponseData(
+  responseData: unknown,
+): Record<string, unknown> | undefined {
+  if (isRecord(responseData)) {
+    return responseData;
+  }
+
+  if (typeof responseData === "string" && responseData.trim().length > 0) {
+    return { message: responseData };
+  }
+
+  return undefined;
+}
+
+function getErrorMessage(responseData: Record<string, unknown> | undefined): string {
+  const message =
+    responseData?.["errMessage"] ??
+    responseData?.["message"] ??
+    responseData?.["error"];
+
+  if (typeof message === "string" && message.trim().length > 0) {
+    return message;
+  }
+
+  const resCode = responseData?.["resCode"];
+
+  if (typeof resCode === "number") {
+    return `Gateway error (${resCode})`;
+  }
+
+  return "An unknown API error occurred";
+}
+
 export type OMPayErrorCode =
   | "AUTHENTICATION_ERROR"
   | "VALIDATION_ERROR"
@@ -39,15 +76,15 @@ export class OMPayError extends Error {
   ): OMPayError {
     if (error.response) {
       const statusCode = error.response.status;
-      const responseData = error.response.data;
+      const responseData = getResponseData(error.response.data);
+      const message = getErrorMessage(responseData);
 
       if (statusCode === 401 || statusCode === 403) {
         return new OMPayError({
           code: "AUTHENTICATION_ERROR",
-          message:
-            "Authentication failed. Please check your client ID and secret.",
+          message,
           statusCode,
-          response: responseData,
+          ...(responseData ? { response: responseData } : {}),
           originalError: error,
         });
       }
@@ -55,22 +92,18 @@ export class OMPayError extends Error {
       if (statusCode === 400 || statusCode === 422) {
         return new OMPayError({
           code: "VALIDATION_ERROR",
-          message: String(
-            responseData?.["message"] ?? "Validation error occurred",
-          ),
+          message,
           statusCode,
-          response: responseData,
+          ...(responseData ? { response: responseData } : {}),
           originalError: error,
         });
       }
 
       return new OMPayError({
         code: "API_ERROR",
-        message: String(
-          responseData?.["message"] ?? `API error: ${statusCode}`,
-        ),
+        message,
         statusCode,
-        response: responseData,
+        ...(responseData ? { response: responseData } : {}),
         originalError: error,
       });
     }
