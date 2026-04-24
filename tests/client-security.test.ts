@@ -1,29 +1,24 @@
 import { createHmac } from "crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { axiosCreateMock, postMock } = vi.hoisted(() => {
-  const postMock = vi.fn();
-  const axiosCreateMock = vi.fn(() => ({
-    post: postMock,
-    get: vi.fn(),
-    delete: vi.fn(),
-  }));
+const fetchMock = vi.fn();
 
-  return { axiosCreateMock, postMock };
-});
-
-vi.mock("axios", () => ({
-  default: {
-    create: axiosCreateMock,
-  },
-}));
+vi.stubGlobal("fetch", fetchMock);
 
 import { OMPayClient, OMPayError } from "../src/index.js";
 
+function errorResponse(data: unknown, status: number) {
+  return Promise.resolve({
+    ok: false,
+    status,
+    headers: new Headers({ "content-type": "application/json" }),
+    text: () => Promise.resolve(JSON.stringify(data)),
+  });
+}
+
 describe("OMPayClient signatures and errors", () => {
   beforeEach(() => {
-    axiosCreateMock.mockClear();
-    postMock.mockReset();
+    fetchMock.mockReset();
   });
 
   it("uses the official pipe-delimited signature format", () => {
@@ -45,17 +40,16 @@ describe("OMPayClient signatures and errors", () => {
   });
 
   it("surfaces gateway errMessage values in validation errors", async () => {
-    postMock.mockRejectedValue({
-      response: {
-        status: 422,
-        data: {
+    fetchMock.mockResolvedValueOnce(
+      errorResponse(
+        {
           errMessage: "Invalid order payload",
           resCode: 422,
           status: "failure",
         },
-      },
-      message: "Request failed with status code 422",
-    });
+        422,
+      ),
+    );
 
     const client = new OMPayClient({
       clientId: "client-id",

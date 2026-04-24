@@ -1,43 +1,36 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { axiosCreateMock, getMock, postMock } = vi.hoisted(() => {
-  const postMock = vi.fn();
-  const getMock = vi.fn();
-  const axiosCreateMock = vi.fn(() => ({
-    post: postMock,
-    get: getMock,
-    delete: vi.fn(),
-  }));
+const fetchMock = vi.fn();
 
-  return { axiosCreateMock, getMock, postMock };
-});
-
-vi.mock("axios", () => ({
-  default: {
-    create: axiosCreateMock,
-  },
-}));
+vi.stubGlobal("fetch", fetchMock);
 
 import { OMPayClient } from "../src/index.js";
 
+function jsonResponse(data: unknown, status = 200) {
+  return Promise.resolve({
+    ok: status >= 200 && status < 300,
+    status,
+    headers: new Headers({ "content-type": "application/json" }),
+    text: () => Promise.resolve(JSON.stringify(data)),
+  });
+}
+
 describe("OMPayClient bank-hosted flows", () => {
   beforeEach(() => {
-    axiosCreateMock.mockClear();
-    getMock.mockReset();
-    postMock.mockReset();
+    fetchMock.mockReset();
   });
 
   it("maps bank-hosted checkout requests to customerFields payload", async () => {
-    postMock.mockResolvedValue({
-      data: {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
         orderId: "wb-123",
         amount: 500,
         currency: "OMR",
         receiptId: "INV-123",
         status: "success",
         resCode: 200,
-      },
-    });
+      }),
+    );
 
     const client = new OMPayClient({
       clientId: "client-id",
@@ -57,23 +50,26 @@ describe("OMPayClient bank-hosted flows", () => {
       curn: "CURN-123",
     });
 
-    expect(postMock).toHaveBeenCalledWith(
-      "/nac/api/v1/pg/orders/create-checkout",
-      {
-        amount: 500,
-        currency: "OMR",
-        uiMode: "checkout",
-        redirectType: "redirect",
-        customerFields: {
-          name: "Jane Doe",
-          email: "jane@example.com",
-          phone: "91234567",
-        },
-        description: "SDK test order",
-        receiptId: "INV-123",
-        curn: "CURN-123",
-      },
+    const [url, options] = fetchMock.mock.calls[0];
+
+    expect(url).toBe(
+      "https://api.uat.gateway.ompay.com/nac/api/v1/pg/orders/create-checkout",
     );
+    expect(options.method).toBe("POST");
+    expect(JSON.parse(options.body)).toEqual({
+      amount: 500,
+      currency: "OMR",
+      uiMode: "checkout",
+      redirectType: "redirect",
+      customerFields: {
+        name: "Jane Doe",
+        email: "jane@example.com",
+        phone: "91234567",
+      },
+      description: "SDK test order",
+      receiptId: "INV-123",
+      curn: "CURN-123",
+    });
 
     expect(response).toMatchObject({
       orderId: "wb-123",
@@ -86,8 +82,8 @@ describe("OMPayClient bank-hosted flows", () => {
   });
 
   it("maps bank-hosted status responses using documented fields", async () => {
-    getMock.mockResolvedValue({
-      data: {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
         orderId: "wb-123",
         status: "failure",
         paymentId: "PAY-123",
@@ -101,8 +97,8 @@ describe("OMPayClient bank-hosted flows", () => {
           cardNetwork: "visa",
           cardType: "credit",
         },
-      },
-    });
+      }),
+    );
 
     const client = new OMPayClient({
       clientId: "client-id",
@@ -111,10 +107,12 @@ describe("OMPayClient bank-hosted flows", () => {
 
     const response = await client.checkStatus("wb-123");
 
-    expect(getMock).toHaveBeenCalledWith(
-      "/nac/api/v1/pg/orders/check-status",
-      { params: { orderId: "wb-123" } },
+    const [url, options] = fetchMock.mock.calls[0];
+
+    expect(url).toBe(
+      "https://api.uat.gateway.ompay.com/nac/api/v1/pg/orders/check-status?orderId=wb-123",
     );
+    expect(options.method).toBe("GET");
 
     expect(response).toMatchObject({
       orderId: "wb-123",

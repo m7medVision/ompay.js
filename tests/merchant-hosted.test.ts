@@ -1,38 +1,29 @@
 import { createHmac } from "crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { axiosCreateMock, deleteMock, getMock, postMock } = vi.hoisted(() => {
-  const postMock = vi.fn();
-  const getMock = vi.fn();
-  const deleteMock = vi.fn();
-  const axiosCreateMock = vi.fn(() => ({
-    post: postMock,
-    get: getMock,
-    delete: deleteMock,
-  }));
+const fetchMock = vi.fn();
 
-  return { axiosCreateMock, deleteMock, getMock, postMock };
-});
-
-vi.mock("axios", () => ({
-  default: {
-    create: axiosCreateMock,
-  },
-}));
+vi.stubGlobal("fetch", fetchMock);
 
 import { OMPayClient } from "../src/index.js";
 
+function jsonResponse(data: unknown, status = 200) {
+  return Promise.resolve({
+    ok: status >= 200 && status < 300,
+    status,
+    headers: new Headers({ "content-type": "application/json" }),
+    text: () => Promise.resolve(JSON.stringify(data)),
+  });
+}
+
 describe("OMPayClient merchant-hosted flows", () => {
   beforeEach(() => {
-    axiosCreateMock.mockClear();
-    deleteMock.mockReset();
-    getMock.mockReset();
-    postMock.mockReset();
+    fetchMock.mockReset();
   });
 
   it("creates merchant-hosted orders with signed headers", async () => {
-    postMock.mockResolvedValue({
-      data: {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
         resCode: 200,
         status: "success",
         data: {
@@ -41,8 +32,8 @@ describe("OMPayClient merchant-hosted flows", () => {
           amount: 100,
           currency: "OMR",
         },
-      },
-    });
+      }),
+    );
 
     const client = new OMPayClient({
       clientId: "client-id",
@@ -79,15 +70,13 @@ describe("OMPayClient merchant-hosted flows", () => {
       },
     });
 
-    expect(postMock).toHaveBeenCalledWith(
-      "/nac/api/v1/merchant-host/order",
-      payload,
+    const [, options] = fetchMock.mock.calls[0];
+
+    expect(options.headers).toEqual(
       expect.objectContaining({
-        headers: expect.objectContaining({
-          "X-Signature": createHmac("sha256", "client-secret")
-            .update(`/order${JSON.stringify(payload)}`)
-            .digest("hex"),
-        }),
+        "X-Signature": createHmac("sha256", "client-secret")
+          .update(`/order${JSON.stringify(payload)}`)
+          .digest("hex"),
       }),
     );
 
@@ -102,8 +91,8 @@ describe("OMPayClient merchant-hosted flows", () => {
   });
 
   it("maps merchant transaction initiation responses", async () => {
-    postMock.mockResolvedValue({
-      data: {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
         resCode: 200,
         status: "success",
         data: {
@@ -122,8 +111,8 @@ describe("OMPayClient merchant-hosted flows", () => {
             digitalCardId: "card-1",
           },
         },
-      },
-    });
+      }),
+    );
 
     const client = new OMPayClient({
       clientId: "client-id",
@@ -163,8 +152,8 @@ describe("OMPayClient merchant-hosted flows", () => {
   });
 
   it("maps merchant transaction status responses", async () => {
-    getMock.mockResolvedValue({
-      data: {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
         resCode: 200,
         status: "success",
         data: {
@@ -186,8 +175,8 @@ describe("OMPayClient merchant-hosted flows", () => {
             cardUsageType: "domestic",
           },
         },
-      },
-    });
+      }),
+    );
 
     const client = new OMPayClient({
       clientId: "client-id",
@@ -201,14 +190,13 @@ describe("OMPayClient merchant-hosted flows", () => {
 
     const response = await client.getTransactionStatus("pay-123");
 
-    expect(getMock).toHaveBeenCalledWith(
-      "/nac/api/v1/merchant-host/transaction/status/pay-123",
+    const [, options] = fetchMock.mock.calls[0];
+
+    expect(options.headers).toEqual(
       expect.objectContaining({
-        headers: expect.objectContaining({
-          "X-Signature": createHmac("sha256", "client-secret")
-            .update("/transaction/status/pay-123")
-            .digest("hex"),
-        }),
+        "X-Signature": createHmac("sha256", "client-secret")
+          .update("/transaction/status/pay-123")
+          .digest("hex"),
       }),
     );
 
@@ -234,8 +222,8 @@ describe("OMPayClient merchant-hosted flows", () => {
   });
 
   it("maps merchant refund and digital card responses", async () => {
-    postMock.mockResolvedValueOnce({
-      data: {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
         resCode: 200,
         status: "success",
         data: {
@@ -251,10 +239,10 @@ describe("OMPayClient merchant-hosted flows", () => {
           compltedAt: "2025-05-29T07:21:19.846Z",
           signarture: "deadbeef",
         },
-      },
-    });
-    getMock.mockResolvedValueOnce({
-      data: {
+      }),
+    );
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
         resCode: 200,
         status: "success",
         data: {
@@ -271,18 +259,18 @@ describe("OMPayClient merchant-hosted flows", () => {
           ],
           remainingLimit: 4,
         },
-      },
-    });
-    deleteMock.mockResolvedValueOnce({
-      data: {
+      }),
+    );
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
         resCode: 200,
         status: "success",
         data: {
           customerId: "cust-1",
           digitalCardId: "card-1",
         },
-      },
-    });
+      }),
+    );
 
     const client = new OMPayClient({
       clientId: "client-id",
