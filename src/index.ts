@@ -39,4 +39,13 @@ export type {
   MerchantDigitalCard,
   MerchantDigitalCardListResponse,
   MerchantDeleteDigitalCardResponse,
+  WebhookEventType,
+  WebhookDataBase,
+  TransactionWebhookData,
+  RefundWebhookData,
+  TransactionCompletedWebhook,
+  TransactionFailedWebhook,
+  RefundSuccessWebhook,
+  RefundFailedWebhook,
+  OMPayWebhookEvent,
 } from "./types/index.js";

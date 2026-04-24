@@ -175,9 +175,58 @@ Advanced merchant-hosted helpers:
 - `client.buildMerchantHeaders(apiPath, context?, payload?)`
 - `client.generateMerchantSignature(apiPath, payload?)`
 
+## Transaction Webhooks
+
+Merchants can configure S2S callback URLs in the merchant dashboard to receive transaction and refund updates.
+
+Supported event types:
+
+| Event Type | Description |
+|------------|-------------|
+| `TRANSACTION_COMPLETED` | Transaction completed successfully |
+| `TRANSACTION_FAILED` | Transaction failed |
+| `REFUND_SUCCESS` | Refund completed successfully |
+| `REFUND_FAILED` | Refund failed |
+
+Webhook payloads are exported as TypeScript types:
+
+```typescript
+import { OMPayClient, type OMPayWebhookEvent } from 'ompay.js';
+
+const client = new OMPayClient({
+  clientId: 'your-client-id',
+  clientSecret: 'your-client-secret',
+});
+
+app.post('/ompay/webhook', async (req, res) => {
+  const rawBody = req.body.toString('utf8');
+  const event = JSON.parse(rawBody) as OMPayWebhookEvent;
+
+  if (!client.verifyWebhookSignature(rawBody, event.data.signature)) {
+    res.status(400).send('Signature mismatched');
+    return;
+  }
+
+  switch (event.eventType) {
+    case 'TRANSACTION_COMPLETED':
+    case 'TRANSACTION_FAILED':
+      console.log(event.data.paymentId, event.data.transactionType);
+      break;
+    case 'REFUND_SUCCESS':
+    case 'REFUND_FAILED':
+      console.log(event.data.refundId, event.data.paymentId);
+      break;
+  }
+
+  res.status(204).send();
+});
+```
+
+Use raw-body middleware for this route, such as `express.raw({ type: 'application/json' })`, so `verifyWebhookSignature` receives the exact payload OMPAY signed.
+
 ## Signature Verification
 
-Use `verifyWebhookSignature` for raw webhook bodies and `verifySignature` for the documented `orderId|paymentId` payment signature format.
+Use `verifyWebhookSignature` for the exact raw webhook body received from OMPAY and `verifySignature` for the documented `orderId|paymentId` payment signature format.
 
 ```typescript
 const rawWebhookBody = JSON.stringify({ paymentId: 'pay-123', status: 'success' });
